@@ -18,7 +18,7 @@ city_distances = np.array([
     [12, 0, 8, 12, 0, 0, 0],
     [10, 8, 0, 11, 3, 0, 9],
     [0, 12, 11, 0, 11, 10, 0],
-    [0, 0, 3, 11, 0, 6, 7],
+    [0, 0, 3, 11, 0, 6, 7], 
     [0, 0, 0, 10, 6, 0, 9],
     [12, 0, 9, 0, 7, 9, 0]
 ])
@@ -36,37 +36,38 @@ initial_radius = num_neurons // 3
 
 # Training the SOM
 for i in range(num_iterations):
-    city = city_positions[np.random.randint(0, num_cities)]
+    city = city_positions[np.random.randint(0, num_cities)] #pick a random city in each training step
 
-    distances = np.linalg.norm(neurons - city, axis=1)
-    winner_index = np.argmin(distances)
+    distances = np.linalg.norm(neurons - city, axis=1)#computes distance from neurons to city
+    winner_index = np.argmin(distances) #find the closest neuron
 
     radius = initial_radius * np.exp(-i / (num_iterations / np.log(initial_radius + 1)))
     influence = np.exp(-distances**2 / (2 * (max(radius, 1e-6) ** 2)))
-
-    neurons += learning_rate * influence[:, np.newaxis] * (city - neurons)
+#reduces the learning radius over time (to refine the path) 
+    neurons += learning_rate * influence[:, np.newaxis] * (city - neurons)#moves neurons closer to the selected city
 
 # Match each city to its nearest neuron
-ordered_indices = []
+ordered_indices = [] #store which neuron is closet to each city
 for city in city_positions:
-    nearest_neuron = np.argmin(np.linalg.norm(neurons - city, axis=1))
-    ordered_indices.append((nearest_neuron, city))
+    nearest_neuron = np.argmin(np.linalg.norm(neurons - city, axis=1))# computes the distance between each neuron and the current city
+    ordered_indices.append((nearest_neuron, city)) #store a pair in the list
 
 # Ensure order and cyclic path
-ordered_indices = sorted(ordered_indices, key=lambda x: x[0])
-ordered_cities = np.array([city for _, city in ordered_indices])
+ordered_indices = sorted(ordered_indices, key=lambda x: x[0])# sorts the list based on the nearest neuron
+ordered_cities = np.array([city for _, city in ordered_indices])#extracts the city coordinates only
 ordered_city_indices = [np.where((city_positions == city).all(axis=1))[0][0] for city in ordered_cities]
+#this contains the indices of the cities in the optimal order
 
 # Close the loop (return to start city)
 ordered_cities = np.vstack([ordered_cities, ordered_cities[0]])
-ordered_city_indices.append(ordered_city_indices[0])
+ordered_city_indices.append(ordered_city_indices[0]) #adds the first city_index to the end
 
 # Calculate total distance using the adjacency matrix
 total_distance = 0
-for i in range(len(ordered_city_indices) - 1):
-    city_a = ordered_city_indices[i]
-    city_b = ordered_city_indices[i + 1]
-    total_distance += city_distances[city_a][city_b]
+for i in range(len(ordered_city_indices) - 1): #loops through the cities
+    city_a = ordered_city_indices[i]          #finds adjacent cities
+    city_b = ordered_city_indices[i + 1]      #look for the distance in the adjacent matrix 
+    total_distance += city_distances[city_a][city_b]  #adds the distance to the total sum
 
 # Plot results
 plt.figure(figsize=(6, 6))
